@@ -37,6 +37,9 @@ export function DashboardLayout({
   onPageChange,
   onLogout,
 }: DashboardLayoutProps) {
+  // Get user info from localStorage
+  const userInfo = JSON.parse(localStorage.getItem('user') || '{"name": "Admin User", "email": "admin@example.com"}');
+  const userInitials = userInfo.name ? userInfo.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'AD';
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "products", label: "Products", icon: Package },
@@ -94,11 +97,11 @@ export function DashboardLayout({
         <div className="p-4 border-t border-border/30 relative z-10">
           <div className="flex items-center space-x-3 px-4 py-3 bg-slate-800/50 backdrop-blur rounded-xl border border-border/30 hover:border-primary/50 transition-all duration-300">
             <Avatar className="w-10 h-10 ring-2 ring-primary/50">
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">AD</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <p className="text-foreground">Admin User</p>
-              <p className="text-muted-foreground">Administrator</p>
+              <p className="text-foreground">{userInfo.name || "Admin User"}</p>
+              <p className="text-muted-foreground">{userInfo.email || "admin@example.com"}</p>
             </div>
           </div>
         </div>
@@ -119,7 +122,7 @@ export function DashboardLayout({
                 {currentPage}
               </h1>
               <p className="text-muted-foreground">
-                Welcome back, Admin! 👋
+                Welcome back, {userInfo.name ? userInfo.name.split(' ')[0] : 'Admin'}! 👋
               </p>
             </div>
           </div>
@@ -183,9 +186,9 @@ export function DashboardLayout({
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center space-x-2 hover:bg-slate-800/50 transition-all">
                   <Avatar className="w-8 h-8 ring-2 ring-primary/50">
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">AD</AvatarFallback>
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">{userInitials}</AvatarFallback>
                   </Avatar>
-                  <span>Admin</span>
+                  <span>{userInfo.name ? userInfo.name.split(' ')[0] : 'Admin'}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-card/95 backdrop-blur-xl border-border/50">
