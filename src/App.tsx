@@ -6,16 +6,20 @@ import { ProductsPage } from "./components/ProductsPage";
 import { SalesPage } from "./components/SalesPage";
 import { ReportsPage } from "./components/ReportsPage";
 import { UsersPage } from "./components/UsersPage";
+import { RegistrationPage } from "./components/RegistrationPage";
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [currentPage, setCurrentPage] = useState("dashboard");
+  const [authPage, setAuthPage] = useState<"login" | "register">("login");
 
   const handleLogin = () => {
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setIsLoggedIn(false);
     setCurrentPage("dashboard");
   };
@@ -32,13 +36,19 @@ export default function App() {
         return <ReportsPage />;
       case "users":
         return <UsersPage />;
+      case "register":
+        return <RegistrationPage />;
       default:
         return <DashboardPage />;
     }
   };
 
   if (!isLoggedIn) {
-    return <LoginPage onLogin={handleLogin} />;
+    return authPage === "login" ? (
+      <LoginPage onLogin={handleLogin} onGoRegister={() => setAuthPage("register")} />
+    ) : (
+      <RegistrationPage onGoLogin={() => setAuthPage("login")} />
+    );
   }
 
   return (

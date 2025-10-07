@@ -20,73 +20,45 @@ import {
 } from "./ui/select";
 import { ShoppingCart, CheckCircle2, DollarSign } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { useEffect } from "react";
 
-const products = [
-  { id: "P001", name: "Laptop Dell XPS 13", price: 1200 },
-  { id: "P002", name: "iPhone 14 Pro", price: 1200 },
-  { id: "P003", name: "Samsung Galaxy S23", price: 900 },
-  { id: "P004", name: "MacBook Pro M2", price: 2500 },
-  { id: "P005", name: "Sony WH-1000XM5", price: 350 },
-  { id: "P006", name: "iPad Air", price: 600 },
-];
+type ApiProduct = { id: number; name: string; sku: string; price: number | string; stock: number };
+type ApiSale = { id: number; product_id: number; quantity: number; total_amount: number | string; sold_at: string };
 
-const initialSales = [
-  {
-    id: "#S001",
-    date: "2025-10-07",
-    product: "Laptop Dell XPS 13",
-    quantity: 2,
-    price: "$1,200",
-    total: "$2,400",
-  },
-  {
-    id: "#S002",
-    date: "2025-10-07",
-    product: "iPhone 14 Pro",
-    quantity: 1,
-    price: "$1,200",
-    total: "$1,200",
-  },
-  {
-    id: "#S003",
-    date: "2025-10-06",
-    product: "Samsung Galaxy S23",
-    quantity: 3,
-    price: "$900",
-    total: "$2,700",
-  },
-  {
-    id: "#S004",
-    date: "2025-10-06",
-    product: "MacBook Pro M2",
-    quantity: 1,
-    price: "$2,500",
-    total: "$2,500",
-  },
-  {
-    id: "#S005",
-    date: "2025-10-05",
-    product: "Sony WH-1000XM5",
-    quantity: 5,
-    price: "$350",
-    total: "$1,750",
-  },
-];
+const products: ApiProduct[] = [];
+
+const initialSales: ApiSale[] = [];
 
 export function SalesPage() {
-  const [sales, setSales] = useState(initialSales);
+  const [sales, setSales] = useState<ApiSale[]>(initialSales);
+  const [productOptions, setProductOptions] = useState<ApiProduct[]>([]);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
   const [subtotal, setSubtotal] = useState(0);
 
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [prodRes, salesRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/sales')
+        ]);
+        const [prodData, salesData] = await Promise.all([prodRes.json(), salesRes.json()]);
+        setProductOptions(prodData);
+        setSales(salesData);
+      } catch {}
+    };
+    load();
+  }, []);
+
   const handleProductChange = (productId: string) => {
     setSelectedProduct(productId);
-    const product = products.find((p) => p.id === productId);
+    const product = productOptions.find((p) => String(p.id) === productId);
     if (product) {
-      setPrice(product.price.toString());
+      setPrice(String(product.price));
       if (quantity) {
-        setSubtotal(product.price * parseInt(quantity));
+        setSubtotal(parseFloat(String(product.price)) * parseInt(quantity));
       }
     }
   };
@@ -98,24 +70,24 @@ export function SalesPage() {
     }
   };
 
-  const handleRecordSale = () => {
+  const handleRecordSale = async () => {
     if (selectedProduct && quantity) {
-      const product = products.find((p) => p.id === selectedProduct);
-      if (product) {
-        const newSale = {
-          id: `#S${String(sales.length + 1).padStart(3, "0")}`,
-          date: new Date().toISOString().split("T")[0],
-          product: product.name,
-          quantity: parseInt(quantity),
-          price: `$${price}`,
-          total: `$${subtotal.toFixed(2)}`,
-        };
-        setSales([newSale, ...sales]);
+      const productIdNum = parseInt(selectedProduct);
+      const qtyNum = parseInt(quantity);
+      const total = parseFloat(price) * qtyNum;
+      try {
+        await fetch('/api/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: productIdNum, quantity: qtyNum, total_amount: total })
+        });
+        const refreshed = await fetch('/api/sales').then(r => r.json());
+        setSales(refreshed);
         setSelectedProduct("");
         setQuantity("");
         setPrice("");
         setSubtotal(0);
-      }
+      } catch {}
     }
   };
 
@@ -148,8 +120,8 @@ export function SalesPage() {
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
                 <SelectContent className="bg-card/95 backdrop-blur-xl border-border/50">
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
+                  {productOptions.map((product) => (
+                    <SelectItem key={product.id} value={String(product.id)}>
                       {product.name}
                     </SelectItem>
                   ))}
@@ -241,17 +213,17 @@ export function SalesPage() {
                     <TableCell className="text-primary">{sale.id}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-blue-500/10 border-blue-500/30 text-blue-400">
-                        {sale.date}
+                        {sale.sold_at}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-foreground">{sale.product}</TableCell>
+                    <TableCell className="text-foreground">{sale.product_id}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-purple-500/10 border-purple-500/30 text-purple-400">
                         {sale.quantity}x
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{sale.price}</TableCell>
-                    <TableCell className="text-right text-green-400">{sale.total}</TableCell>
+                    <TableCell className="text-muted-foreground">{sale.total_amount}</TableCell>
+                    <TableCell className="text-right text-green-400">{sale.total_amount}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

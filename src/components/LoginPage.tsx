@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -7,16 +7,33 @@ import { ShoppingBag, Sparkles } from "lucide-react";
 
 interface LoginPageProps {
   onLogin: () => void;
+  onGoRegister?: () => void;
 }
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ onLogin, onGoRegister }: LoginPageProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: username, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        onLogin();
+      } else {
+        alert(data.error || 'Login failed');
+      }
+    } catch (error) {
+      alert('Login failed. Please try again.');
+    }
   };
 
   return (
@@ -62,11 +79,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="username" className="text-foreground">Username</Label>
+            <Label htmlFor="username" className="text-foreground">Email</Label>
             <Input
               id="username"
               type="text"
-              placeholder="Enter your username"
+              placeholder="Enter your email"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="bg-input-background border-border/50 focus:border-primary transition-all duration-300"
@@ -109,9 +126,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </Button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-2">
           <p className="text-muted-foreground">
             Demo credentials: <span className="text-primary">admin / any password</span>
+          </p>
+          <p className="text-muted-foreground">Don't have an account?{' '}
+            <button type="button" onClick={onGoRegister} className="text-primary hover:text-primary/80 transition-colors underline">
+              Create one
+            </button>
           </p>
         </div>
       </div>

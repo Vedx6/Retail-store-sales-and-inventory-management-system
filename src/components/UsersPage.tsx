@@ -29,92 +29,43 @@ import {
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { UserPlus, Mail, Phone, Pencil, Trash2, Users, Shield, UserCheck } from "lucide-react";
+import { useEffect } from "react";
 
-const initialUsers = [
-  {
-    id: "U001",
-    name: "John Smith",
-    email: "john.smith@retailstore.com",
-    phone: "+1 234-567-8901",
-    role: "Admin",
-    status: "Active",
-    initials: "JS",
-  },
-  {
-    id: "U002",
-    name: "Sarah Johnson",
-    email: "sarah.j@retailstore.com",
-    phone: "+1 234-567-8902",
-    role: "Manager",
-    status: "Active",
-    initials: "SJ",
-  },
-  {
-    id: "U003",
-    name: "Michael Brown",
-    email: "michael.b@retailstore.com",
-    phone: "+1 234-567-8903",
-    role: "Cashier",
-    status: "Active",
-    initials: "MB",
-  },
-  {
-    id: "U004",
-    name: "Emily Davis",
-    email: "emily.d@retailstore.com",
-    phone: "+1 234-567-8904",
-    role: "Cashier",
-    status: "Active",
-    initials: "ED",
-  },
-  {
-    id: "U005",
-    name: "David Wilson",
-    email: "david.w@retailstore.com",
-    phone: "+1 234-567-8905",
-    role: "Manager",
-    status: "Active",
-    initials: "DW",
-  },
-  {
-    id: "U006",
-    name: "Lisa Anderson",
-    email: "lisa.a@retailstore.com",
-    phone: "+1 234-567-8906",
-    role: "Cashier",
-    status: "Inactive",
-    initials: "LA",
-  },
-];
+type ApiUser = { id: number; name: string; email: string; role: string; created_at: string };
+const initialUsers: ApiUser[] = [];
 
 export function UsersPage() {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState<ApiUser[]>(initialUsers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
-    phone: "",
     role: "",
   });
 
-  const handleAddUser = () => {
-    const initials = newUser.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-    const user = {
-      id: `U${String(users.length + 1).padStart(3, "0")}`,
-      name: newUser.name,
-      email: newUser.email,
-      phone: newUser.phone,
-      role: newUser.role,
-      status: "Active",
-      initials: initials,
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/users');
+        const data: ApiUser[] = await res.json();
+        setUsers(data);
+      } catch {}
     };
-    setUsers([...users, user]);
-    setNewUser({ name: "", email: "", phone: "", role: "" });
-    setIsAddDialogOpen(false);
+    load();
+  }, []);
+
+  const handleAddUser = async () => {
+    try {
+      await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newUser.name, email: newUser.email, role: newUser.role || 'staff' })
+      });
+      const refreshed = await fetch('/api/users').then(r => r.json());
+      setUsers(refreshed);
+      setNewUser({ name: "", email: "", role: "" });
+      setIsAddDialogOpen(false);
+    } catch {}
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -195,18 +146,7 @@ export function UsersPage() {
                   className="bg-input-background border-border/50 focus:border-primary"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="userPhone">Phone</Label>
-                <Input
-                  id="userPhone"
-                  placeholder="+1 234-567-8900"
-                  value={newUser.phone}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, phone: e.target.value })
-                  }
-                  className="bg-input-background border-border/50 focus:border-primary"
-                />
-              </div>
+              {/* Phone removed for API parity */}
               <div className="space-y-2">
                 <Label htmlFor="userRole">Role</Label>
                 <Select
@@ -259,7 +199,7 @@ export function UsersPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10">
-            <h2 className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{users.filter((u) => u.status === "Active").length}</h2>
+            <h2 className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{users.filter((u) => u.role === "Admin").length}</h2>
           </CardContent>
         </Card>
         <Card className="bg-card/50 backdrop-blur-xl border-border/50 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105 group overflow-hidden relative">
@@ -310,7 +250,7 @@ export function UsersPage() {
                       <div className="flex items-center space-x-3">
                         <Avatar className={`w-10 h-10 ring-2 ring-offset-2 ring-offset-background bg-gradient-to-br ${getAvatarGradient(user.role)} shadow-lg`}>
                           <AvatarFallback className={`bg-gradient-to-br ${getAvatarGradient(user.role)} text-white`}>
-                            {user.initials}
+                            {user.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
@@ -325,27 +265,22 @@ export function UsersPage() {
                         {user.email}
                       </div>
                     </TableCell>
+                    {/* Phone column removed for API parity */}
                     <TableCell>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="w-4 h-4" />
-                        {user.phone}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getRoleBadgeColor(user.role)}>
+                      <Badge variant="outline" className={getRoleBadgeColor(user.role as any)}>
                         {user.role}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={user.status === "Active" ? "default" : "secondary"}
+                        variant={user.role === "Admin" ? "default" : "secondary"}
                         className={
-                          user.status === "Active"
+                          user.role === "Admin"
                             ? "bg-green-500/10 text-green-400 border-green-500/30"
                             : "bg-gray-500/10 text-gray-400 border-gray-500/30"
                         }
                       >
-                        {user.status}
+                        {user.role}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">

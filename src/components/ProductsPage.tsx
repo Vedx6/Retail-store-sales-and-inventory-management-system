@@ -28,120 +28,78 @@ import {
 } from "./ui/select";
 import { Plus, Search, Pencil, Trash2, Package2, Filter } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { useEffect } from "react";
 
-const initialProducts = [
-  {
-    id: "P001",
-    name: "Laptop Dell XPS 13",
-    category: "Electronics",
-    price: "$1,200",
-    quantity: 45,
-    supplier: "Dell Inc.",
-    status: "In Stock",
-  },
-  {
-    id: "P002",
-    name: "iPhone 14 Pro",
-    category: "Electronics",
-    price: "$1,200",
-    quantity: 23,
-    supplier: "Apple Inc.",
-    status: "In Stock",
-  },
-  {
-    id: "P003",
-    name: "Samsung Galaxy S23",
-    category: "Electronics",
-    price: "$900",
-    quantity: 8,
-    supplier: "Samsung",
-    status: "Low Stock",
-  },
-  {
-    id: "P004",
-    name: "MacBook Pro M2",
-    category: "Electronics",
-    price: "$2,500",
-    quantity: 15,
-    supplier: "Apple Inc.",
-    status: "In Stock",
-  },
-  {
-    id: "P005",
-    name: "Sony WH-1000XM5",
-    category: "Audio",
-    price: "$350",
-    quantity: 67,
-    supplier: "Sony",
-    status: "In Stock",
-  },
-  {
-    id: "P006",
-    name: "LG OLED TV 55\"",
-    category: "Electronics",
-    price: "$1,800",
-    quantity: 12,
-    supplier: "LG Electronics",
-    status: "In Stock",
-  },
-  {
-    id: "P007",
-    name: "Canon EOS R6",
-    category: "Cameras",
-    price: "$2,400",
-    quantity: 5,
-    supplier: "Canon",
-    status: "Low Stock",
-  },
-  {
-    id: "P008",
-    name: "iPad Air",
-    category: "Electronics",
-    price: "$600",
-    quantity: 34,
-    supplier: "Apple Inc.",
-    status: "In Stock",
-  },
-];
+type ApiProduct = {
+  id: number;
+  name: string;
+  sku: string;
+  price: number;
+  stock: number;
+  created_at: string;
+};
+
+const initialProducts: ApiProduct[] = [];
 
 export function ProductsPage() {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState<ApiProduct[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
-    category: "",
+    sku: "",
     price: "",
-    quantity: "",
-    supplier: "",
+    stock: "",
   });
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/products');
+        const data: ApiProduct[] = await res.json();
+        setProducts(data);
+      } catch (_e) {
+        // ignore for now
+      }
+    };
+    load();
+  }, []);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.id.toLowerCase().includes(searchTerm.toLowerCase());
+      String(product.id).toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
-      selectedCategory === "all" || product.category === selectedCategory;
+      selectedCategory === "all"; // no category in API schema for now
     return matchesSearch && matchesCategory;
   });
 
-  const handleAddProduct = () => {
-    const product = {
-      id: `P${String(products.length + 1).padStart(3, "0")}`,
-      name: newProduct.name,
-      category: newProduct.category,
-      price: newProduct.price,
-      quantity: parseInt(newProduct.quantity),
-      supplier: newProduct.supplier,
-      status: parseInt(newProduct.quantity) < 10 ? "Low Stock" : "In Stock",
-    };
-    setProducts([...products, product]);
-    setNewProduct({ name: "", category: "", price: "", quantity: "", supplier: "" });
-    setIsAddDialogOpen(false);
+  const handleAddProduct = async () => {
+    try {
+      const payload = {
+        name: newProduct.name,
+        sku: newProduct.sku,
+        price: Number(newProduct.price),
+        stock: Number(newProduct.stock),
+      };
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) return;
+      // reload list after creation
+      const refreshed = await fetch('/api/products').then(r => r.json());
+      setProducts(refreshed);
+      setNewProduct({ name: "", sku: "", price: "", stock: "" });
+      setIsAddDialogOpen(false);
+    } catch (_e) {
+      // ignore for now
+    }
   };
 
-  const categories = ["all", "Electronics", "Audio", "Cameras"];
+  const categories = ["all"]; // categories not in API schema
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
@@ -183,22 +141,14 @@ export function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={newProduct.category}
-                  onValueChange={(value) =>
-                    setNewProduct({ ...newProduct, category: value })
-                  }
-                >
-                  <SelectTrigger id="category" className="bg-input-background border-border/50">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card/95 backdrop-blur-xl border-border/50">
-                    <SelectItem value="Electronics">Electronics</SelectItem>
-                    <SelectItem value="Audio">Audio</SelectItem>
-                    <SelectItem value="Cameras">Cameras</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="sku">SKU</Label>
+                <Input
+                  id="sku"
+                  placeholder="SKU-001"
+                  value={newProduct.sku}
+                  onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                  className="bg-input-background border-border/50 focus:border-primary"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="price">Price</Label>
@@ -213,27 +163,13 @@ export function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
+                <Label htmlFor="quantity">Stock</Label>
                 <Input
-                  id="quantity"
+                  id="stock"
                   type="number"
                   placeholder="0"
-                  value={newProduct.quantity}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, quantity: e.target.value })
-                  }
-                  className="bg-input-background border-border/50 focus:border-primary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="supplier">Supplier</Label>
-                <Input
-                  id="supplier"
-                  placeholder="Enter supplier name"
-                  value={newProduct.supplier}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, supplier: e.target.value })
-                  }
+                  value={newProduct.stock}
+                  onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
                   className="bg-input-background border-border/50 focus:border-primary"
                 />
               </div>
@@ -280,13 +216,11 @@ export function ProductsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-border/50">
-                  <TableHead className="text-muted-foreground">Product ID</TableHead>
+                  <TableHead className="text-muted-foreground">ID</TableHead>
                   <TableHead className="text-muted-foreground">Name</TableHead>
-                  <TableHead className="text-muted-foreground">Category</TableHead>
+                  <TableHead className="text-muted-foreground">SKU</TableHead>
                   <TableHead className="text-muted-foreground">Price</TableHead>
-                  <TableHead className="text-muted-foreground">Quantity</TableHead>
-                  <TableHead className="text-muted-foreground">Supplier</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Stock</TableHead>
                   <TableHead className="text-right text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -301,29 +235,12 @@ export function ProductsPage() {
                     <TableCell className="text-foreground">{product.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-blue-500/10 border-blue-500/30 text-blue-400">
-                        {product.category}
+                        {product.sku}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-foreground">{product.price}</TableCell>
+                    <TableCell className="text-foreground">{typeof product.price === 'number' ? product.price.toFixed(2) : String(product.price)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-purple-500/10 border-purple-500/30 text-purple-400">
-                        {product.quantity}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{product.supplier}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          product.status === "In Stock" ? "default" : "destructive"
-                        }
-                        className={
-                          product.status === "In Stock"
-                            ? "bg-green-500/10 text-green-400 border-green-500/30"
-                            : "bg-red-500/10 text-red-400 border-red-500/30"
-                        }
-                      >
-                        {product.status}
-                      </Badge>
+                      <Badge variant="outline" className="bg-purple-500/10 border-purple-500/30 text-purple-400">{product.stock}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
