@@ -41,8 +41,8 @@ A full-stack retail management system with React frontend, Node.js/Express backe
 
 ### 1. Clone the repository
 ```bash
-git clone <your-repo-url>
-cd retailstore-dashboard
+git clone https://github.com/Legend-coding/retail-store-inventory-management.git
+cd retail-store-inventory-management
 ```
 
 ### 2. Database Setup
@@ -173,7 +173,7 @@ CREATE TABLE sales (
 
 ### Project Structure
 ```
-retailstore-dashboard/
+retail-store-inventory-management/
 ├── src/                    # Frontend React app
 │   ├── components/         # React components
 │   ├── utils/             # Utility functions
