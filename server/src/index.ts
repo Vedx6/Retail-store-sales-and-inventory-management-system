@@ -1,6 +1,7 @@
 import express = require("express");
 import cors = require("cors");
 import dotenv = require("dotenv");
+import path = require("path");
 import { apiRouter } from "./routes";
 import { runHealthCheck } from "./db";
 
@@ -9,6 +10,11 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Root route handler
+app.get("/", (_req, res) => {
+	res.send("Retail Store API Server is running. Use /api endpoints to access data.");
+});
 
 app.get("/api/health", async (_req, res) => {
 	const ok = await runHealthCheck();

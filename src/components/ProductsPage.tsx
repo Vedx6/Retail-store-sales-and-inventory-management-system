@@ -46,12 +46,14 @@ export function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
     sku: "",
     price: "",
     stock: "",
   });
+  const [editProduct, setEditProduct] = useState<ApiProduct | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -94,6 +96,46 @@ export function ProductsPage() {
       setProducts(refreshed);
       setNewProduct({ name: "", sku: "", price: "", stock: "" });
       setIsAddDialogOpen(false);
+    } catch (_e) {
+      // ignore for now
+    }
+  };
+
+  const handleEditProduct = async () => {
+    if (!editProduct) return;
+    try {
+      const payload = {
+        name: editProduct.name,
+        sku: editProduct.sku,
+        price: editProduct.price,
+        stock: editProduct.stock,
+      };
+      const res = await fetch(`/api/products/${editProduct.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) return;
+      // reload list after update
+      const refreshed = await fetch('/api/products').then(r => r.json());
+      setProducts(refreshed);
+      setEditProduct(null);
+      setIsEditDialogOpen(false);
+    } catch (_e) {
+      // ignore for now
+    }
+  };
+
+  const handleDeleteProduct = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) return;
+      // reload list after deletion
+      const refreshed = await fetch('/api/products').then(r => r.json());
+      setProducts(refreshed);
     } catch (_e) {
       // ignore for now
     }
@@ -248,6 +290,10 @@ export function ProductsPage() {
                           variant="ghost" 
                           size="icon" 
                           className="hover:bg-blue-500/10 hover:text-blue-400 transition-all"
+                          onClick={() => {
+                            setEditProduct(product);
+                            setIsEditDialogOpen(true);
+                          }}
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
@@ -255,6 +301,7 @@ export function ProductsPage() {
                           variant="ghost" 
                           size="icon" 
                           className="hover:bg-red-500/10 hover:text-red-400 transition-all"
+                          onClick={() => handleDeleteProduct(product.id)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -274,6 +321,76 @@ export function ProductsPage() {
           <p className="text-muted-foreground">No products found matching your search.</p>
         </div>
       )}
+
+      {/* Edit Product Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Package2 className="w-5 h-5 text-primary" />
+              <span>Edit Product</span>
+            </DialogTitle>
+            <DialogDescription>
+              Update the details of the selected product
+            </DialogDescription>
+          </DialogHeader>
+          {editProduct && (
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="editProductName">Product Name</Label>
+                <Input
+                  id="editProductName"
+                  placeholder="Enter product name"
+                  value={editProduct.name}
+                  onChange={(e) =>
+                    setEditProduct({ ...editProduct, name: e.target.value })
+                  }
+                  className="bg-input-background border-border/50 focus:border-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSku">SKU</Label>
+                <Input
+                  id="editSku"
+                  placeholder="SKU-001"
+                  value={editProduct.sku}
+                  onChange={(e) => setEditProduct({ ...editProduct, sku: e.target.value })}
+                  className="bg-input-background border-border/50 focus:border-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editPrice">Price</Label>
+                <Input
+                  id="editPrice"
+                  placeholder="$0.00"
+                  value={editProduct.price}
+                  onChange={(e) =>
+                    setEditProduct({ ...editProduct, price: Number(e.target.value) })
+                  }
+                  className="bg-input-background border-border/50 focus:border-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editStock">Stock</Label>
+                <Input
+                  id="editStock"
+                  type="number"
+                  placeholder="0"
+                  value={editProduct.stock}
+                  onChange={(e) => setEditProduct({ ...editProduct, stock: Number(e.target.value) })}
+                  className="bg-input-background border-border/50 focus:border-primary"
+                />
+              </div>
+              <Button
+                onClick={handleEditProduct}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                Update Product
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

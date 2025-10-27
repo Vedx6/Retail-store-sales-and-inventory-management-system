@@ -37,6 +37,8 @@ const initialUsers: ApiUser[] = [];
 export function UsersPage() {
   const [users, setUsers] = useState<ApiUser[]>(initialUsers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editUser, setEditUser] = useState<ApiUser | null>(null);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -66,6 +68,34 @@ export function UsersPage() {
       setNewUser({ name: "", email: "", role: "" });
       setIsAddDialogOpen(false);
     } catch {}
+  };
+  
+  const handleEditUser = async () => {
+    if (!editUser) return;
+    
+    try {
+      await fetch(`/api/users/${editUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editUser)
+      });
+      const refreshed = await fetch('/api/users').then(r => r.json());
+      setUsers(refreshed);
+      setIsEditDialogOpen(false);
+      setEditUser(null);
+    } catch {}
+  };
+  
+  const handleDeleteUser = async (userId: number) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      try {
+        await fetch(`/api/users/${userId}`, {
+          method: 'DELETE'
+        });
+        const refreshed = await fetch('/api/users').then(r => r.json());
+        setUsers(refreshed);
+      } catch {}
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -289,6 +319,10 @@ export function UsersPage() {
                           variant="ghost" 
                           size="icon" 
                           className="hover:bg-blue-500/10 hover:text-blue-400 transition-all"
+                          onClick={() => {
+                            setEditUser(user);
+                            setIsEditDialogOpen(true);
+                          }}
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
@@ -296,6 +330,7 @@ export function UsersPage() {
                           variant="ghost" 
                           size="icon" 
                           className="hover:bg-red-500/10 hover:text-red-400 transition-all"
+                          onClick={() => handleDeleteUser(user.id)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -308,6 +343,76 @@ export function UsersPage() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Pencil className="w-5 h-5 text-primary" />
+              <span>Edit User</span>
+            </DialogTitle>
+            <DialogDescription>
+              Update user account details and role
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {editUser && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="editUserName">Full Name</Label>
+                  <Input
+                    id="editUserName"
+                    placeholder="Enter full name"
+                    value={editUser.name}
+                    onChange={(e) =>
+                      setEditUser({ ...editUser, name: e.target.value })
+                    }
+                    className="bg-input-background border-border/50 focus:border-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editUserEmail">Email</Label>
+                  <Input
+                    id="editUserEmail"
+                    type="email"
+                    placeholder="email@retailstore.com"
+                    value={editUser.email}
+                    onChange={(e) =>
+                      setEditUser({ ...editUser, email: e.target.value })
+                    }
+                    className="bg-input-background border-border/50 focus:border-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editUserRole">Role</Label>
+                  <Select
+                    value={editUser.role}
+                    onValueChange={(value) =>
+                      setEditUser({ ...editUser, role: value })
+                    }
+                  >
+                    <SelectTrigger id="editUserRole" className="bg-input-background border-border/50">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card/95 backdrop-blur-xl border-border/50">
+                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="Manager">Manager</SelectItem>
+                      <SelectItem value="Cashier">Cashier</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={handleEditUser}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  Update User
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

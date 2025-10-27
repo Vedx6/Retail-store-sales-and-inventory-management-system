@@ -94,7 +94,7 @@ export function DashboardLayout({
           })}
         </nav>
 
-        <div className="p-4 border-t border-border/30 relative z-10">
+        <div className="p-4 border-t border-border/30 relative z-10 space-y-3">
           <div className="flex items-center space-x-3 px-4 py-3 bg-slate-800/50 backdrop-blur rounded-xl border border-border/30 hover:border-primary/50 transition-all duration-300">
             <Avatar className="w-10 h-10 ring-2 ring-primary/50">
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">{userInitials}</AvatarFallback>
@@ -104,6 +104,16 @@ export function DashboardLayout({
               <p className="text-muted-foreground">{userInfo.email || "admin@example.com"}</p>
             </div>
           </div>
+          
+          {/* Logout Button */}
+          <Button 
+            onClick={onLogout} 
+            variant="outline" 
+            className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-300"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
         </div>
       </aside>
 

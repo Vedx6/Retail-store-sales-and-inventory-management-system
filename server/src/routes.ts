@@ -21,6 +21,30 @@ apiRouter.post("/products", async (req: Request, res: Response) => {
 	res.status(201).json({ id: (result as any).insertId });
 });
 
+apiRouter.put("/products/:id", async (req: Request, res: Response) => {
+	try {
+		const { id } = req.params;
+		const { name, sku, price, stock } = req.body ?? {};
+		await executeQuery(
+			"UPDATE products SET name = ?, sku = ?, price = ?, stock = ? WHERE id = ?",
+			[name, sku, price, stock, id]
+		);
+		res.json({ success: true });
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
+});
+
+apiRouter.delete("/products/:id", async (req: Request, res: Response) => {
+	try {
+		const { id } = req.params;
+		await executeQuery("DELETE FROM products WHERE id = ?", [id]);
+		res.json({ success: true });
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
+});
+
 // Users
 apiRouter.get("/users", async (_req: Request, res: Response) => {
 	const rows = await executeQuery(
@@ -36,6 +60,30 @@ apiRouter.post("/users", async (req: Request, res: Response) => {
 		[name, email, role ?? "staff"]
 	);
 	res.status(201).json({ id: (result as any).insertId });
+});
+
+apiRouter.put("/users/:id", async (req: Request, res: Response) => {
+	try {
+		const { id } = req.params;
+		const { name, email, role } = req.body ?? {};
+		await executeQuery(
+			"UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?",
+			[name, email, role, id]
+		);
+		res.json({ success: true });
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
+});
+
+apiRouter.delete("/users/:id", async (req: Request, res: Response) => {
+	try {
+		const { id } = req.params;
+		await executeQuery("DELETE FROM users WHERE id = ?", [id]);
+		res.json({ success: true });
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
 });
 
 // Sales
